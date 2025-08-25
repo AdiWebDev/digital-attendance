@@ -129,6 +129,19 @@
         </div>
       </div>
 
+
+        <div class="form-group">
+        <label>Ladder:</label>
+        <div class="ladder-group">
+          <label><input type="radio" name="ladder" value="Covenanted"> Covenanted</label>
+          <label><input type="radio" name="ladder" value="Non-Covenanted"> Non-Covenanted</label>
+        </div>
+      </div>
+
+       <input type="text" id="laddercom" name="laddercom" placeholder="Enter Ladder">
+
+      
+
       <button type="button" class="btn" onclick="generateQRCode()">Generate QR Code</button>
     </form>
 
@@ -144,13 +157,15 @@
       const firstName = document.getElementById("firstname").value.trim();
       const lastName = document.getElementById("lastname").value.trim();
       const status = document.querySelector('input[name="status"]:checked');
+      const ladder = document.querySelector('input[name="ladder"]:checked');
+        const laddercom= document.getElementById("laddercom").value.trim();
 
-      if (!saaId || !firstName || !lastName || !status) {
+      if (!saaId || !firstName || !lastName || !status || !ladder ) {
         alert("Please fill all fields before generating QR Code.");
         return;
       }
 
-      const qrData = `SAA-ID: ${saaId}\nName: ${firstName} ${lastName}\nStatus: ${status.value}`;
+      const qrData = `SAA-ID: ${saaId}\nName: ${firstName} ${lastName}\nStatus: ${status.value} \nLadder: ${ladder.value} \n${laddercom}`;
 
       // Clear old QR Code
       document.getElementById("qrcode").innerHTML = "";
