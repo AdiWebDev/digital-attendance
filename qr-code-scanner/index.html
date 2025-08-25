@@ -3,167 +3,150 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Scanner → Google Sheets</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+  <title>QR Code Scanner</title>
+  <!-- Load library first -->
+<script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      text-align: center;
-      padding: 20px;
+      background: #f4f6f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
       margin: 0;
     }
-    h1 {
-      color: #222;
-      margin-bottom: 10px;
-    }
-    p {
-      color: #444;
-      font-size: 16px;
-    }
-    #reader {
-      width: 300px;
-      margin: 20px auto;
-      border: 2px solid #ddd;
+
+    .scanner-container {
+      background: #fff;
+      padding: 20px 30px;
       border-radius: 10px;
-      background: #fff;
-      padding: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      text-align: center;
+      width: 400px;
     }
-    input[type=file] {
-      margin-top: 15px;
-      padding: 8px;
-      border: 1px solid #ddd;
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 15px;
+    }
+
+    video {
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
+
+    #fileInput {
+      margin: 15px 0;
+    }
+
+    .btn {
+      padding: 10px 15px;
+      background: #2196F3;
+      border: none;
       border-radius: 5px;
-      background: #fff;
+      color: white;
       cursor: pointer;
+      font-size: 1rem;
+      margin: 5px 0;
     }
-    .log {
-      margin-top: 20px;
-      padding: 12px;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 15px;
+
+    .btn:hover {
+      background: #1976D2;
+    }
+
+    #result {
+      margin-top: 15px;
+      font-weight: bold;
       color: #333;
-      max-width: 320px;
-      margin-left: auto;
-      margin-right: auto;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .loading::after {
-      content: "⏳";
-      animation: spin 1s linear infinite;
-      margin-left: 8px;
-    }
-    @keyframes spin {
-      0% { content: "⏳"; }
-      25% { content: "🔄"; }
-      50% { content: "⏳"; }
-      75% { content: "🔄"; }
-      100% { content: "⏳"; }
+      word-wrap: break-word;
     }
   </style>
+  <!-- QR Scanner Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
 </head>
 <body>
-  <h1>📷 QR Scanner → Google Sheets</h1>
-  <p>Scan a QR code with your camera or upload an image</p>
 
-  <!-- Live Camera QR Scanner -->
-  <div id="reader"></div>
+<div class="scanner-container">
+  <h1>QR Code Scanner</h1>
 
+  <!-- Camera Scanner -->
+  <div id="reader" style="width: 100%;"></div>
+  
   <!-- Upload QR Image -->
-  <input type="file" id="upload" accept="image/*">
+  <input type="file" id="fileInput" accept="image/*">
+  
+  <!-- Scan Result -->
+  <p id="result">Scan a QR code...</p>
+</div>
 
-  <!-- Status Log -->
-  <div class="log" id="log">Waiting for scan...</div>
+<script>
+  // 🔗 Replace this with your own Google Apps Script Web App URL
+  const SHEET_URL = "https://script.google.com/macros/s/AKfycby9BdjIQzj5NzLiXPDkUt6DzXDeeRDm0nDq0hSvURK-nD07Fky1M50K__qyYnvIWrNT/exec";
 
-  <script>
-    const SHEETS_URL = "https://script.google.com/macros/s/AKfycbzuH34Cb9jPFz_SWgOPll7bW4OmN6E0UnPOlO5wYYLFGQkIO0QsQb1hM7AgEir7LFLi/exec";
-    const logEl = document.getElementById("log");
+  // Send scanned data to Google Sheets
+  function sendToGoogleSheet(data) {
+    fetch(SHEET_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ qrData: data })
+    })
+    .then(() => alert("Data sent to Google Sheets!"))
+    .catch(err => alert("Error: " + err));
+  }
 
-    // Update status text
-    function setStatus(message, isLoading = false) {
-      logEl.textContent = message;
-      logEl.classList.toggle("loading", isLoading);
-    }
+  // Handle uploaded image scanning
+  document.getElementById("fileInput").addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    // Send scanned data to Google Sheets
-    async function sendToSheets(id, raw) {
-      setStatus("Sending to Google Sheets...", true);
-      try {
-        const res = await fetch(SHEETS_URL, {
-          method: "POST",
-          mode: "cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id, raw })
-        });
-        
-        const text = await res.text();
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch {
-          throw new Error("Invalid response: " + text);
-        }
+    const reader = new FileReader();
+    reader.onload = function() {
+      const img = new Image();
+      img.src = reader.result;
+      img.onload = function() {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, img.width, img.height);
 
-        if (data.status === "success") {
-          setStatus("✅ Saved to Sheets: " + id);
+        const imageData = ctx.getImageData(0, 0, img.width, img.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code) {
+          document.getElementById("result").textContent = code.data;
+          sendToGoogleSheet(code.data);
         } else {
-          throw new Error(data.message || "Unknown error");
+          alert("No QR code found in this image.");
         }
-      } catch (err) {
-        setStatus("❌ Failed: " + err.message);
-      }
-    }
-
-    // Handle scanned QR content
-    function handleScan(decodedText) {
-      let id = decodedText;
-      try {
-        const parsed = JSON.parse(decodedText);
-        id = parsed.id || decodedText;
-      } catch {}
-      sendToSheets(id, decodedText);
-    }
-
-    // Start live QR scanner
-    const html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      handleScan
-    ).catch(err => {
-      setStatus("⚠️ Camera error: " + err);
-    });
-
-    // Handle uploaded QR image
-    document.getElementById("upload").addEventListener("change", evt => {
-      const file = evt.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const img = new Image();
-        img.src = reader.result;
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0);
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(imageData.data, canvas.width, canvas.height);
-          if (code) {
-            setStatus("✅ QR Found: " + code.data);
-            handleScan(code.data);
-          } else {
-            setStatus("❌ No QR code detected.");
-          }
-        };
       };
-      reader.readAsDataURL(file);
-    });
-  </script>
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Start live camera scanner
+  const html5QrCode = new Html5Qrcode("reader");
+  const qrConfig = { fps: 10, qrbox: 250 };
+
+  html5QrCode.start(
+      { facingMode: "environment" }, 
+      qrConfig,
+      qrCodeMessage => {
+          document.getElementById("result").textContent = qrCodeMessage;
+          sendToGoogleSheet(qrCodeMessage);
+          // Comment out stop() for continuous scanning
+          // html5QrCode.stop();
+      },
+      errorMessage => {
+          console.log("QR Scan Error:", errorMessage);
+      }
+  ).catch(err => {
+      console.error("Camera start failed:", err);
+  });
+</script>
+
 </body>
 </html>
