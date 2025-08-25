@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QR Code Scanner</title>
-  <!-- Load library first -->
-<script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -64,7 +62,7 @@
     }
   </style>
   <!-- QR Scanner Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js"></script>
 </head>
 <body>
@@ -84,7 +82,7 @@
 
 <script>
   // 🔗 Replace this with your own Google Apps Script Web App URL
-  const SHEET_URL = "https://script.google.com/macros/s/AKfycbwjggc_kzuGCjK3Pdz6cND6DdQ6y88Axlm3kp-W1VLV-G9bHJv5iG_p8zHyBUN4-CpWIQ/exec";
+  const SHEET_URL = "https://script.google.com/macros/s/AKfycby9BdjIQzj5NzLiXPDkUt6DzXDeeRDm0nDq0hSvURK-nD07Fky1M50K__qyYnvIWrNT/exec";
 
   // Send scanned data to Google Sheets
   function sendToGoogleSheet(data) {
@@ -94,8 +92,8 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ qrData: data })
     })
-    .then(() => alert("Data sent to Google Sheets!"))
-    .catch(err => alert("Error: " + err));
+    .then(() => console.log("Data sent to Google Sheets"))
+    .catch(err => console.error("Error sending data:", err));
   }
 
   // Handle uploaded image scanning
@@ -127,25 +125,29 @@
     reader.readAsDataURL(file);
   });
 
-  // Start live camera scanner
-  const html5QrCode = new Html5Qrcode("reader");
-  const qrConfig = { fps: 10, qrbox: 250 };
+  // Live camera scanning with duplicate prevention
+  let lastScanned = null;
+  window.onload = function() {
+    const html5QrCode = new Html5Qrcode("reader");
+    const qrConfig = { fps: 10, qrbox: 250 };
 
-  html5QrCode.start(
-      { facingMode: "environment" }, 
+    html5QrCode.start(
+      { facingMode: "environment" },
       qrConfig,
       qrCodeMessage => {
+        if (qrCodeMessage !== lastScanned) {
+          lastScanned = qrCodeMessage;
           document.getElementById("result").textContent = qrCodeMessage;
           sendToGoogleSheet(qrCodeMessage);
-          // Comment out stop() for continuous scanning
-          // html5QrCode.stop();
+        }
       },
       errorMessage => {
-          console.log("QR Scan Error:", errorMessage);
+        console.log("QR Scan Error:", errorMessage);
       }
-  ).catch(err => {
-      console.error("Camera start failed:", err);
-  });
+    ).catch(err => {
+      alert("Camera start failed: " + err);
+    });
+  };
 </script>
 
 </body>
