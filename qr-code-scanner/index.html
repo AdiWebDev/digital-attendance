@@ -127,25 +127,31 @@
     reader.readAsDataURL(file);
   });
 
-  // Start live camera scanner
-  const html5QrCode = new Html5Qrcode("reader");
-  const qrConfig = { fps: 10, qrbox: 250 };
+// Track the last scanned QR code
+let lastScanned = null;
 
-  html5QrCode.start(
-      { facingMode: "environment" }, 
-      qrConfig,
-      qrCodeMessage => {
-          document.getElementById("result").textContent = qrCodeMessage;
-          sendToGoogleSheet(qrCodeMessage);
-          // Comment out stop() for continuous scanning
-          // html5QrCode.stop();
-      },
-      errorMessage => {
-          console.log("QR Scan Error:", errorMessage);
-      }
-  ).catch(err => {
-      console.error("Camera start failed:", err);
-  });
+// Start live camera scanner
+const html5QrCode = new Html5Qrcode("reader");
+const qrConfig = { fps: 10, qrbox: 250 };
+
+html5QrCode.start(
+    { facingMode: "environment" }, 
+    qrConfig,
+    qrCodeMessage => {
+        // Only send if it's a new QR code
+        if (qrCodeMessage !== lastScanned) {
+            lastScanned = qrCodeMessage; // update last scanned
+            document.getElementById("result").textContent = qrCodeMessage;
+            sendToGoogleSheet(qrCodeMessage);
+        }
+    },
+    errorMessage => {
+        console.log("QR Scan Error:", errorMessage);
+    }
+).catch(err => {
+    console.error("Camera start failed:", err);
+});
+
 </script>
 
 </body>
